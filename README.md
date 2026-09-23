@@ -8,15 +8,44 @@
 
 ## 기본 형식
 
+가장 흔한 진입점은 예약 등록 화면입니다.
+
 ```
 https://kbucall.pages.dev/booking/new?pickup=<출발지>&dropoff=<목적지>
 ```
 
 모든 값은 URL 인코딩해서 넘깁니다.
 
+## 열 수 있는 화면
+
+예약 등록 말고 다른 화면도 직접 열 수 있습니다. 주소는 모두 `https://kbucall.pages.dev` 아래입니다.
+
+| 화면 | 경로 |
+|---|---|
+| 홈 | `/` |
+| 예약 등록 | `/booking/new` |
+| 예약 목록 | `/booking/list` |
+| 이용 내역 | `/booking/history` |
+| 알림센터 | `/notifications` |
+| 즐겨찾기 경로 | `/favorites` |
+| 자주 가는 주소 | `/address` |
+| 설정 | `/settings` |
+| 사용 안내 | `/guide` |
+| 의견 보내기 | `/feedback` |
+| 메뉴 | `/menu` |
+
+어느 화면으로 들어오든 복지콜 앱의 모든 기능을 쓸 수 있습니다. 딥링크로 들어온 화면에는
+"복지콜 홈으로"가 함께 붙어서, 홈과 메뉴를 거쳐 나머지 화면에 닿을 수 있습니다.
+
+네비앱이 "바로 예약"과 "예약 확인" 같은 진입점을 나눠서 제공하고 싶다면 경로만 바꿔서
+같은 방식으로 열면 됩니다.
+
 ## 파라미터
 
 전부 선택 사항입니다. 넘기지 않은 항목은 빈 값으로 열리고 사용자가 직접 입력합니다.
+
+출발지·도착지 등 예약 내용은 `/booking/new`에서만 의미가 있습니다.
+`returnUrl`과 `returnLabel`은 위 표의 어느 화면으로 들어오든 동작합니다.
 
 | 이름 | 형식 | 설명 |
 |---|---|---|
@@ -28,6 +57,8 @@ https://kbucall.pages.dev/booking/new?pickup=<출발지>&dropoff=<목적지>
 | `viaDetail` | 문자열 | 경유지 상세주소 |
 | `date` | `YYYY-MM-DD` | 이용 날짜. 생략하면 오늘 |
 | `time` | `HH:mm` (24시간) | 이용 시각. 생략하면 사용자가 선택 |
+| `returnUrl` | URL | 호출한 앱으로 돌아갈 주소. 아래 [돌아가기](#돌아가기) 참고 |
+| `returnLabel` | 문자열 | 돌아가기 버튼에 쓸 앱 이름. 예: `네이버 지도` |
 
 예시:
 
@@ -55,6 +86,8 @@ val url = Uri.parse("https://kbucall.pages.dev/booking/new")
     .buildUpon()
     .appendQueryParameter("pickup", currentAddress)
     .appendQueryParameter("dropoff", destinationAddress)
+    .appendQueryParameter("returnUrl", "navermap://booking-done")
+    .appendQueryParameter("returnLabel", "네이버 지도")
     .build()
 
 CustomTabsIntent.Builder()
@@ -69,6 +102,8 @@ var components = URLComponents(string: "https://kbucall.pages.dev/booking/new")!
 components.queryItems = [
     URLQueryItem(name: "pickup", value: currentAddress),
     URLQueryItem(name: "dropoff", value: destinationAddress),
+    URLQueryItem(name: "returnUrl", value: "navermap://booking-done"),
+    URLQueryItem(name: "returnLabel", value: "네이버 지도"),
 ]
 
 let safari = SFSafariViewController(url: components.url!)
@@ -82,6 +117,61 @@ present(safari, animated: true)
 
 Custom Tabs나 SFSafariViewController를 띄우기 직전에 안내 음성을 정지하거나 일시정지해 주세요.
 사용자가 돌아왔을 때 다시 시작하면 됩니다.
+
+## 돌아가기
+
+`returnUrl`을 넘기면 복지콜 앱의 **모든 화면** 맨 앞에 컨트롤 두 개가 붙습니다.
+
+- `← 네이버 지도로 돌아가기` — 호출한 앱으로 나갑니다.
+- `복지콜 홈으로` — 복지콜 홈으로 이동합니다. 홈에서는 나오지 않습니다.
+
+진입한 화면에만 두지 않는 이유는, 사용자가 예약 목록이나 설정으로 들어간 순간
+나갈 길이 사라지기 때문입니다. 목적지는 탭 단위로 기억하므로 앱 안에서 화면을 몇 번
+옮겨도 유지되고, 연동으로 연 탭을 닫으면 함께 사라집니다. 로그인 화면에서도 나오기
+때문에 로그인하기 전에도 돌아갈 수 있습니다.
+
+`returnLabel`은 버튼 이름에 그대로 쓰입니다. 넘기지 않으면 "원래 앱"이 됩니다. 20자를 넘으면 잘립니다.
+
+**복지콜 앱이 스스로 이동하지는 않습니다.** 사용자가 버튼을 직접 눌렀을 때만 `returnUrl`을 엽니다.
+
+### 예약을 마친 뒤
+
+접수가 끝나면 입력 폼이 내려가고 "예약 목록 보기"가 남습니다. 예약 목록으로 자동
+이동하지 않습니다 — 결과를 다 듣기 전에 화면이 바뀌면 안 되기 때문입니다.
+호출한 앱으로 돌아가는 건 화면 맨 앞 컨트롤로 언제든 가능합니다.
+
+접수에 실패하면 폼이 그대로 남습니다. 주소를 고쳐 다시 시도하거나 그냥 나갈 수 있습니다.
+
+### 화면 안의 "뒤로"
+
+각 화면에는 원래 "← 뒤로"가 있습니다. 딥링크로 연 탭에는 이전 기록이 없어서 진입한
+화면에서 이걸 누르면 아무 일도 일어나지 않았는데, 이제 돌아갈 기록이 없으면 복지콜
+홈으로 갑니다. 앱 밖으로 나가는 것은 위의 복귀 컨트롤이 담당합니다.
+
+### 받는 형식
+
+커스텀 스킴과 http(s)를 모두 받습니다.
+
+```
+navermap://booking-done
+https://map.example.com/return?trip=12345
+```
+
+앱으로 돌아오는 용도라면 커스텀 스킴이나 App Links / Universal Links 주소가 확실합니다.
+사용자가 어떤 경로에서 나갔는지 구분하고 싶으면 `returnUrl`에 쿼리를 미리 붙여 두세요.
+복지콜 앱은 받은 주소를 그대로 엽니다.
+
+`javascript:`, `data:`, `vbscript:`, `file:`, `blob:`, `about:`, `filesystem:` 스킴과
+상대경로는 거부됩니다. 거부되면 `returnUrl`을 넘기지 않은 것과 같게 동작합니다.
+
+http(s) 주소를 넘기면 버튼 이름에 호스트가 함께 붙습니다 — `네이버 지도로 돌아가기 (map.example.com)`.
+주소 표시줄을 볼 수 없는 사용자도 어디로 나가는지 알 수 있어야 하기 때문입니다.
+
+### Custom Tabs를 쓴다면
+
+Custom Tabs와 SFSafariViewController는 사용자가 탭을 닫으면 원래 앱으로 돌아갑니다.
+`returnUrl` 없이도 복귀 자체는 됩니다. `returnUrl`은 화면 안에 이름이 분명한 복귀 버튼을
+두기 위한 것으로, 닫기 컨트롤을 찾기 어려운 스크린리더 사용자에게 특히 도움이 됩니다.
 
 ## 로그인
 
@@ -99,8 +189,8 @@ Custom Tabs나 SFSafariViewController를 띄우기 직전에 안내 음성을 �
 
 ## 아직 없는 것
 
-- **네비앱으로 복귀**: 예약을 마친 뒤 호출한 앱으로 돌아가는 딥링크는 아직 없습니다.
-  현재는 사용자가 뒤로 가기로 돌아갑니다. 필요하면 이슈로 논의해 주세요.
+- **접수 결과 콜백**: 예약이 성공했는지를 외부 앱이 자동으로 돌려받는 방법은 없습니다.
+  `returnUrl`은 사용자가 버튼을 눌렀을 때만 열리고, 결과 값을 붙여 보내지 않습니다.
 - **앱 안에서 예약 완결**: 복지콜 계정 정보를 외부 앱이 직접 다루지 않도록,
   예약 확정은 복지콜 앱 화면에서만 이뤄집니다.
 

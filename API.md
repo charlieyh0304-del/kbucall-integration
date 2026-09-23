@@ -6,9 +6,16 @@
 화면을 열 수 있는 환경이라면 [딥링크 연동](README.md)을 쓰세요. 주소 확인과 최종 확인을
 복지콜 앱이 대신 해주기 때문에 붙이기도 쉽고 사고 위험도 낮습니다.
 
-**그대로 돌아가는 참조 구현이 [examples/book.mjs](examples/book.mjs)에 있습니다.**
-아래 규칙을 전부 구현한 것이라, 순서가 헷갈리면 그 파일을 보세요. 의존성이 없고
-Node 18 이상이면 바로 실행됩니다.
+**그대로 돌아가는 참조 구현이 있습니다** — [kbucall-cli](https://github.com/charlieyh0304-del/kbucall-cli).
+아래 규칙을 전부 구현한 CLI라, 순서가 헷갈리면 그 코드를 보세요. 의존성이 없고
+Node 18 이상이면 바로 돌아갑니다. `lib/address.js` 에 확인 절차가, `lib/api.js` 에
+호출이 모여 있습니다.
+
+```
+npm install -g charlieyh0304-del/kbucall-cli
+kbucall login
+kbucall book "둔촌동 1376-1" "여의도동 2" --at +10m --dry-run
+```
 
 ## 접수 전 확인 의무
 
@@ -219,16 +226,18 @@ Authorization: Bearer <token>
 
 ## 전체 흐름
 
-`examples/book.mjs`가 이 순서를 그대로 구현합니다.
+[kbucall-cli](https://github.com/charlieyh0304-del/kbucall-cli)가 이 순서를 그대로 구현합니다.
+직접 붙이기 전에 한 번 돌려보면 각 단계가 무엇을 하는지 눈으로 볼 수 있습니다.
 
 ```bash
+npm install -g charlieyh0304-del/kbucall-cli
+kbucall login
+
 # 접수 없이 로그인·주소 확인·시각 계산만 확인
-KBUCALL_NAME=홍길동 KBUCALL_PHONE=01012345678 KBUCALL_PASSWORD=... \
-  node examples/book.mjs --pickup "둔촌동 1376-1" --dropoff "여의도동 2" --at +10m --dry-run
+kbucall book "둔촌동 1376-1" "여의도동 2" --at +10m --dry-run
 
 # 실제 접수
-KBUCALL_NAME=홍길동 KBUCALL_PHONE=01012345678 KBUCALL_PASSWORD=... \
-  node examples/book.mjs --pickup "둔촌동 1376-1" --dropoff "여의도동 2" --at +10m
+kbucall book "둔촌동 1376-1" "여의도동 2" --at +10m
 ```
 
 `--dry-run`은 접수 직전까지만 하고 멈춥니다. 연동을 붙이는 동안 실제 차량을 부르지 않고
